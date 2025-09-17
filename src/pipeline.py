@@ -10,31 +10,39 @@ import kagglehub
 
 
 def read_and_process():
-    try:
-    # Download latest version
-        downloaded_path = kagglehub.dataset_download("mnassrib/telecom-churn-datasets")
-        if downloaded_path is None:
-            print("Downloaded path is empty, no data found.")
-    except Exception as e:
-        return f"Error:{e}"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(base_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    
+    #define final data paths
+    destination_train_path = os.path.join(data_dir, "churn_train.csv")
+    destination_test_path = os.path.join(data_dir, "churn_test.csv")
+    
+    #download only if files dont exist locally
+    if not (os.path.exists(destination_train_path) and os.path.exists(destination_test_path)):
+        print("Downloading dataset from kagglehub.")
+        try:
+            downloaded_path = kagglehub.dataset_download("mnassrib/telecom-churn-datasets")
+            if downloaded_path is None:
+                raise FileNotFoundError("Downloaded path is empty, no data found.")
+            
+            #locate source files
+            train_file_path = os.path.join(downloaded_path, 'churn-bigml-80.csv')
+            test_file_path = os.path.join(downloaded_path, 'churn-bigml-20.csv')
+
+            #copy to repo data folder
+            shutil.copy(train_file_path, destination_train_path)
+            shutil.copy(test_file_path, destination_test_path)
+            print("Data downloaded and saved to 'data/' folder.")
+        except Exception as e:
+            return f"Error while downloading data:{e}"
+    else:
+        print("Using existing dataset from data folder.")
         
-    #get current working directory to save dataset
-    data_path = "D:\Data Science\Machine Learning & Deep Learning ANN (Regression & Classification)\Classification Practicals\TelecomChurn\data"
-    print("Data has been loaded from Kagglehub.")
-    
-    #get train and test data paths
-    train_file_path = os.path.join(downloaded_path, 'churn-bigml-80.csv')
-    test_file_path = os.path.join(downloaded_path, 'churn-bigml-20.csv')
-
-    destination_train_path = os.path.join(data_path, "churn_train.csv")
-    destination_test_path = os.path.join(data_path, "churn_test.csv")
-
-    #save train, test data files
-    train_data = pd.read_csv(shutil.copy(train_file_path, destination_train_path))
-    test_data = pd.read_csv(shutil.copy(test_file_path, destination_test_path))
-    
-    print("Data pre-processing begins...")
-    
+    #load into pandas
+    train_data = pd.read_csv(destination_train_path)
+    test_data = pd.read_csv(destination_test_path)
+        
     #select the relevant columns
     train_data = train_data[['Account length', 'International plan', 'Voice mail plan', 'Number vmail messages', 
                          'Total day minutes', 'Total day calls', 'Total day charge', 'Total eve minutes',
